@@ -142,8 +142,20 @@ func yaml_emitter_set_emitter_error(emitter *yaml_emitter_t, problem string) boo
 	return false
 }
 
+// Trim the events queue
+func yaml_emitter_trim(emitter *yaml_emitter_t) {
+	live_events := emitter.events[emitter.events_head:]
+	new_events := make([]yaml_event_t, len(live_events))
+	copy(new_events, live_events)
+	emitter.events = new_events
+	emitter.events_head = 0
+}
+
 // Emit an event.
 func yaml_emitter_emit(emitter *yaml_emitter_t, event *yaml_event_t) bool {
+	// Keep the event queue from getting out of control, first.
+	yaml_emitter_trim(emitter)
+
 	emitter.events = append(emitter.events, *event)
 	for !yaml_emitter_need_more_events(emitter) {
 		event := &emitter.events[emitter.events_head]
@@ -241,7 +253,7 @@ func yaml_emitter_increase_indent(emitter *yaml_emitter_t, flow, indentless bool
 			emitter.indent += 2
 		} else {
 			// Everything else aligns to the chosen indentation.
-			emitter.indent = emitter.best_indent*((emitter.indent+emitter.best_indent)/emitter.best_indent)
+			emitter.indent = emitter.best_indent * ((emitter.indent + emitter.best_indent) / emitter.best_indent)
 		}
 	}
 	return true
